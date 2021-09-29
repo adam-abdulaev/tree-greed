@@ -1,4 +1,4 @@
-import {Component, ViewChild} from '@angular/core';
+import {Component, ElementRef, ViewChild, ViewEncapsulation} from '@angular/core';
 import {DropDownListComponent} from '@syncfusion/ej2-angular-dropdowns';
 import {
   EditSettingsModel,
@@ -7,11 +7,13 @@ import {
   VirtualScrollService
 } from '@syncfusion/ej2-angular-grids';
 import {getData} from './data';
+import {addClass, removeClass} from "@syncfusion/ej2-base";
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
+  encapsulation: ViewEncapsulation.None,
   providers: [FilterService, VirtualScrollService]
 })
 export class AppComponent {
@@ -29,6 +31,7 @@ export class AppComponent {
   public filterSettings: Object;
   public editing: EditSettingsModel;
   public height = '240px';
+  public flag = false;
   @ViewChild('sample')
   public listObj: DropDownListComponent;
   @ViewChild('overviewgrid')
@@ -40,36 +43,44 @@ export class AppComponent {
   ];
   public fields: Object = {text: 'text', value: 'value'};
   public item: number[] = [1, 2, 3, 4, 5];
-  public contextMenuItems: Object;
+  public contextMenuItems: any[];
+  private initialRender = false;
+  private gridProperties: any;
 
   public ngOnInit(): void {
     this.data = getData(1000);
-    this.editing = {allowEditOnDblClick: false};
+    this.editing = {allowEditOnDblClick: false, allowEditing: true, allowDeleting: true, allowAdding: true};
     this.contextMenuItems = [
-      {text: 'Style', target: '.e-headercontent', id: 'collapseall'},
-      {text: 'Freeze On/Off', target: '.e-headercontent', id: 'frozen'},
-      {text: 'Filter On/Off', target: '.e-headercontent', id: 'filter'},
-      {text: 'Multi-Sort On/Off', target: '.e-headercontent', id: 'sort'},
+      {text: 'Show Columns', target: '.e-headercontent', id: 'showColumns'},
+      {text: 'Freeze On', target: '.e-headercontent', id: 'frozen'},
+      {text: 'Filter On', target: '.e-headercontent', id: 'filter'},
+      {text: 'Multi-Sort On', target: '.e-headercontent', id: 'multiSort'},
       {text: 'Add/Del/Edit', target: '.e-headercontent', id: 'editor'},
-      {text: 'Multi-Select On/Off', target: '.e-content', items: [{text: 'On', id: 'multiSelect'}, {text: 'Off', id: 'singleSelect'}]},
+      {
+        text: 'Multi-Select On/Off',
+        target: '.e-content',
+        items: [{text: 'On', id: 'multiSelect'}, {text: 'Off', id: 'singleSelect'}]
+      },
       {
         text: 'Add/Del/Edit',
         target: '.e-content',
-        id: 'rowEditor',
         items: [
           {text: 'Add', id: 'addRow'},
           {text: 'Edit', id: 'editRow'},
           {text: 'Delete', id: 'deleteRow'}
         ]
       },
+      {text: 'Drag and Drop On', target: '.e-content', id: 'dragAndDrop'},
+      {text: 'Copy', target: '.e-content', id: 'copy'},
     ];
-    this.filterSettings = {type: 'Menu'};
+    this.filterSettings = { type: 'FilterBar', hierarchyMode: 'Parent', mode: 'Immediate' };
+    ;
     this.filter = {type: 'CheckBox'};
     this.stTime = performance.now();
   }
 
   ngAfterViewInit(args): void {
-    this.gridInstance.on('data-ready', function() {
+    this.gridInstance.on('data-ready', function () {
       this.dReady = true;
     });
 
@@ -88,14 +99,42 @@ export class AppComponent {
 
   contextMenuClick(args?): void {
     switch (args.item.id) {
+      case 'showColumns':
+        console.log(this.gridInstance.columns)
+        // this.gridInstance.showColumns(this.gridInstance.columns);
+        break;
       case 'filter':
-        this.gridInstance.getColumnByField(args.column.field).allowFiltering = !this.gridInstance.getColumnByField(args.column.field).allowFiltering;
+        if (args.item.properties.text === 'Filter On') {
+          const newItem = {...this.contextMenuItems[2], text: 'Filter Off'};
+          this.changeContextMenuItemText(newItem)
+        } else {
+          const newItem = {...this.contextMenuItems[2], text: 'Filter On'};
+          this.changeContextMenuItemText(newItem)
+        }
+        this.gridInstance.allowFiltering = !this.gridInstance.allowFiltering;
+        this.gridInstance.refreshColumns();
         break;
       case 'frozen':
-        this.gridInstance.getColumnByField(args.column.field).isFrozen = !this.gridInstance.getColumnByField(args.column.field).isFrozen;
+        if (args.item.properties.text === 'Freeze On') {
+          const newItem = {...this.contextMenuItems[1], text: 'Freeze Off'};
+          this.changeContextMenuItemText(newItem)
+          this.gridInstance.frozenColumns = this.gridInstance.getColumnByField(args.column.field).index + 1;
+        } else {
+          const newItem = {...this.contextMenuItems[1], text: 'Freeze On'};
+          this.changeContextMenuItemText(newItem)
+          this.gridInstance.frozenColumns = 0;
+        }
         break;
-      case 'sort':
-        this.gridInstance.getColumnByField(args.column.field).allowSorting = !this.gridInstance.getColumnByField(args.column.field).allowSorting;
+      case 'multiSort':
+        if (args.item.properties.text === 'Multi-Sort On') {
+          const newItem = {...this.contextMenuItems[3], text: 'Multi-Sort Off'};
+          this.changeContextMenuItemText(newItem)
+        } else {
+          const newItem = {...this.contextMenuItems[3], text: 'Multi-Sort On'};
+          this.changeContextMenuItemText(newItem)
+        }
+        this.gridInstance.allowMultiSorting = !this.gridInstance.allowMultiSorting;
+        this.gridInstance.clearSorting();
         break;
       case 'editor':
         this.gridInstance.allowResizing = !this.gridInstance.allowResizing;
@@ -106,6 +145,7 @@ export class AppComponent {
             }
           });
         }
+        this.gridInstance.refreshColumns();
         break;
       case 'multiSelect':
         this.gridInstance.selectionSettings = {type: 'Multiple'};
@@ -114,16 +154,28 @@ export class AppComponent {
         this.gridInstance.selectionSettings = {type: 'Single'};
         break;
       case 'editRow':
-        this.gridInstance.editSettings = {allowEditing: true, mode: 'Normal'};
+        this.gridInstance.startEdit();
+        break;
       case 'addRow':
-        this.gridInstance.editSettings = {allowAdding: true, mode: 'Normal'};
+        this.gridInstance.addRecord();
         break;
       case 'deleteRow':
-        this.gridInstance.editSettings = {allowDeleting: true, mode: 'Normal'};
+        this.gridInstance.deleteRecord();
         break;
+      case 'dragAndDrop':
+        if (args.item.properties.text === 'Drag and Drop On') {
+          const newItem = {...this.contextMenuItems[7], text: 'Drag and Drop Off'};
+          this.changeContextMenuItemText(newItem)
+        } else {
+          const newItem = {...this.contextMenuItems[7], text: 'Drag and Drop On'};
+          this.changeContextMenuItemText(newItem)
+        }
+        this.gridInstance.allowRowDragAndDrop = !this.gridInstance.allowRowDragAndDrop ;
+        break;
+      case 'copy':
+        this.gridInstance.copy();
+
     }
-    this.gridInstance.clearSelection();
-    this.gridInstance.refreshColumns();
   }
 
   valueChange(args): void {
@@ -146,8 +198,53 @@ export class AppComponent {
   }
 
   onDataBound(args: any): void {
+    this.flag = true;
     clearTimeout(this.clrIntervalFun);
     clearInterval(this.intervalFun);
     this.dtTime = true;
+    // if(this.initialRender){
+    //   this.gridProperties = JSON.parse(this.gridInstance.getPersistData());
+    //   this.initialRender = false;
+    // }
+  }
+
+  changeContextMenuItemText(newItem) {
+    // @ts-ignore
+    this.gridInstance.contextMenuItems = this.gridInstance.contextMenuItems.map(item => {
+      if (item.id === newItem.id) {
+        return newItem;
+      }
+      return item;
+    });
+  }
+
+
+  public onClicked(e): void {
+    if (!this.flag) { return; }
+
+    let element: HTMLElement = <HTMLInputElement>e.target;
+
+    if (element.textContent === 'Show All') {
+      document.querySelectorAll('.e-tbar-btn-text').forEach(element => element.classList.remove('e-ghidden'));
+      this.gridInstance.columns.forEach(item => this.gridInstance.showColumns(item.headerText))
+      return;
+    }
+
+    if (!element.classList.contains('e-tbar-btn-text') && !element.classList.contains('e-tbar-btn')) {
+      return;
+    }
+
+    element = <HTMLElement>(element.tagName === 'BUTTON' ? element.firstElementChild : element);
+    this.flag = false;
+    let hidden: boolean = element.classList.contains('e-ghidden');
+    let classFn: Function = hidden ? removeClass : addClass;
+    classFn([element], 'e-ghidden');
+
+    if (hidden) {
+      this.gridInstance.showColumns(element.innerHTML);
+    } else {
+      this.gridInstance.hideColumns(element.innerHTML);
+    }
+    this.flag = true;
   }
 }

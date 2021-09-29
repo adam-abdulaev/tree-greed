@@ -6,6 +6,7 @@ import { AppComponent } from './app.component';
 import {GridAllModule} from '@syncfusion/ej2-angular-grids';
 import { TreeGridAllModule } from '@syncfusion/ej2-angular-treegrid';
 import {DropDownListAllModule} from '@syncfusion/ej2-angular-dropdowns';
+import {ToolbarAllModule} from "@syncfusion/ej2-angular-navigations";
 
 @NgModule({
   declarations: [
@@ -16,7 +17,8 @@ import {DropDownListAllModule} from '@syncfusion/ej2-angular-dropdowns';
     AppRoutingModule,
     GridAllModule,
     TreeGridAllModule,
-    DropDownListAllModule
+    DropDownListAllModule,
+    ToolbarAllModule
   ],
   providers: [],
   bootstrap: [AppComponent]
