@@ -3,11 +3,35 @@
                     [fields]='fields' [popupHeight]='height'></ejs-dropdownlist>
   <span id='msg'></span>
   <br/>
-  <ejs-grid #overviewgrid id='overviewgrid' [contextMenuItems]='contextMenuItems'
-            (contextMenuClick)="contextMenuClick($event)" [dataSource]='data' rowHeight='38'
-            [allowSorting]='true' height='600' (dataBound)='onDataBound($event)' [enableHover]='false'
-             [filterSettings]='filterSettings' [allowSorting]='true'
-            [allowFiltering]='true' [enableVirtualization]='true' [editSettings]="editing" >
+  <ejs-toolbar class='e-gridlist' (clicked)="onClicked($event.originalEvent)">
+    <e-items>
+      <e-item text='Employee Name'></e-item>
+      <e-item text='Designation'></e-item>
+      <e-item text='Mail'></e-item>
+      <e-item text='Location'></e-item>
+      <e-item text='Status'></e-item>
+      <e-item text='Trustworthiness'></e-item>
+      <e-item text='Rating'></e-item>
+      <e-item text='Software'></e-item>
+      <e-item text='Current Salary'></e-item>
+      <e-item text='Address'></e-item>
+      <e-item text='Show All'></e-item>
+    </e-items>
+  </ejs-toolbar>
+  <ejs-grid #overviewgrid id='overviewgrid'
+            [allowResizing]=true
+            [allowReordering]="true"
+            [contextMenuItems]='contextMenuItems'
+            (contextMenuClick)="contextMenuClick($event)"
+            [dataSource]='data' rowHeight='38'
+            height='600' (dataBound)='onDataBound($event)'
+            [enableHover]='false'
+            [filterSettings]='filterSettings'
+            [allowSorting]='true'
+            [allowFiltering]='false'
+            [allowMultiSorting]='false'
+            [enableVirtualization]='true'
+            [editSettings]="editing" >
     <e-columns>
       <e-column field='Employees' headerText='Employee Name' [filter]='filter'
                 clipMode='EllipsisWithTooltip' width='200'>
